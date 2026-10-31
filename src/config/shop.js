@@ -3,7 +3,7 @@
 // Can be overridden with VITE_WHATSAPP_NUMBER in .env.
 // ---------------------------------------------------------------------------
 
-const RAW_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '081259892921'
+const RAW_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '082224096174'
 
 /**
  * Convert a local Indonesian number (08xx) into the international format
