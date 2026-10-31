@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { Heart, Loader, AlertCircle, ArrowRight } from 'lucide-react'
 import { useFavorites } from '../hooks/useFavorites'
 import { useGuns } from '../hooks/useGuns'
+import { useArchivedIds } from '../hooks/useArchive'
+import { isGunArchived } from '../utils/helpers'
 import GUNS_LOCAL from '../data/guns'
 import GunCard from '../components/gun/GunCard'
 
@@ -12,6 +14,7 @@ import GunCard from '../components/gun/GunCard'
 export default function FavoritesPage({ onSelectGun, onNavigateCatalog }) {
   const { favorites, loading: favLoading, error: favError, refetch } = useFavorites()
   const { guns: apiGuns } = useGuns({ limit: 100 })
+  const archivedIds = useArchivedIds()
 
   // All known guns catalog for fallback item lookup
   const allKnownGuns = useMemo(() => {
@@ -59,8 +62,9 @@ export default function FavoritesPage({ onSelectGun, onNavigateCatalog }) {
       }
     })
 
-    return resolved
-  }, [favorites, allKnownGuns])
+    // Archived (soft-deleted) products are hidden
+    return resolved.filter((g) => !isGunArchived(g, archivedIds))
+  }, [favorites, allKnownGuns, archivedIds])
 
   const isLoading = favLoading && favoriteItems.length === 0
 

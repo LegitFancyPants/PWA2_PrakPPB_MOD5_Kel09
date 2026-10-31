@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import favoriteService from '../services/favoriteService'
 import { getUserIdentifier } from '../services/userService'
+import { queryKeys } from '../config/queryClient'
+
+const EMPTY = []
 
 // ---------------------------------------------------------------------------
 // localStorage fallback — used when the backend is unavailable so that
@@ -30,42 +33,36 @@ const writeLocalFavs = (ids) => {
 // useFavorites — list all favourited product IDs.
 //
 // First attempts the server; on failure uses localStorage.
+// The list is cached once and shared by the header badge, the favourites
+// page and every FavoriteButton — one request instead of one per card.
 // ---------------------------------------------------------------------------
 
 export function useFavorites() {
-  const [favorites, setFavorites] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [isLocal, setIsLocal] = useState(false)
   const userIdentifier = getUserIdentifier()
 
-  const fetchFavorites = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await favoriteService.getFavorites(userIdentifier)
-
-      if (response.success) {
-        setFavorites(response.data || [])
-        setIsLocal(false)
-      } else {
+  const query = useQuery({
+    queryKey: queryKeys.favorites(userIdentifier),
+    queryFn: async () => {
+      try {
+        const response = await favoriteService.getFavorites(userIdentifier)
+        if (response.success) {
+          return { list: response.data || [], isLocal: false }
+        }
         throw new Error(response.message)
+      } catch {
+        // Fallback to localStorage
+        return { list: readLocalFavs(), isLocal: true }
       }
-    } catch {
-      // Fallback to localStorage
-      setFavorites(readLocalFavs())
-      setIsLocal(true)
-    } finally {
-      setLoading(false)
-    }
-  }, [userIdentifier])
+    },
+  })
 
-  useEffect(() => {
-    fetchFavorites()
-  }, [fetchFavorites])
-
-  return { favorites, loading, error, isLocal, refetch: fetchFavorites }
+  return {
+    favorites: query.data?.list || EMPTY,
+    loading: query.isLoading,
+    error: null,
+    isLocal: Boolean(query.data?.isLocal),
+    refetch: query.refetch,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -73,45 +70,47 @@ export function useFavorites() {
 // ---------------------------------------------------------------------------
 
 export function useToggleFavorite() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
   const userIdentifier = getUserIdentifier()
 
-  const toggleFavorite = async (gunId) => {
-    try {
-      setLoading(true)
-      setError(null)
+  const mutation = useMutation({
+    mutationFn: async (gunId) => {
+      try {
+        const response = await favoriteService.toggleFavorite({
+          recipe_id: gunId,
+          user_identifier: userIdentifier,
+        })
 
-      const response = await favoriteService.toggleFavorite({
-        recipe_id: gunId,
-        user_identifier: userIdentifier,
-      })
+        if (response.success) {
+          return response.data
+        }
+        throw new Error(response.message)
+      } catch {
+        // Fallback: toggle in localStorage
+        const current = readLocalFavs()
+        const idx = current.findIndex((id) => String(id) === String(gunId))
+        let isFavorited
 
-      if (response.success) {
-        return response.data
+        if (idx === -1) {
+          current.push(gunId)
+          isFavorited = true
+        } else {
+          current.splice(idx, 1)
+          isFavorited = false
+        }
+        writeLocalFavs(current)
+        return { is_favorited: isFavorited }
       }
-      throw new Error(response.message)
-    } catch {
-      // Fallback: toggle in localStorage
-      const current = readLocalFavs()
-      const idx = current.findIndex((id) => String(id) === String(gunId))
-      let isFavorited
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.favorites(userIdentifier) }),
+  })
 
-      if (idx === -1) {
-        current.push(gunId)
-        isFavorited = true
-      } else {
-        current.splice(idx, 1)
-        isFavorited = false
-      }
-      writeLocalFavs(current)
-      return { is_favorited: isFavorited }
-    } finally {
-      setLoading(false)
-    }
+  return {
+    toggleFavorite: mutation.mutateAsync,
+    loading: mutation.isPending,
+    error: mutation.error,
   }
-
-  return { toggleFavorite, loading, error }
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +118,7 @@ export function useToggleFavorite() {
 // ---------------------------------------------------------------------------
 
 export function useIsFavorited(gunId) {
-  const { favorites, loading: fetchLoading, refetch } = useFavorites()
+  const { favorites, loading: fetchLoading } = useFavorites()
   const { toggleFavorite: toggle, loading: toggleLoading } = useToggleFavorite()
 
   // Check both server-format (objects with .id) and local-format (plain ids)
@@ -128,11 +127,7 @@ export function useIsFavorited(gunId) {
     return String(favId) === String(gunId)
   })
 
-  const toggleFavorite = async () => {
-    const result = await toggle(gunId)
-    if (result) await refetch()
-    return result
-  }
+  const toggleFavorite = () => toggle(gunId)
 
   return {
     isFavorited,
@@ -142,5 +137,3 @@ export function useIsFavorited(gunId) {
 }
 
 export { getUserIdentifier }
-
-

@@ -80,3 +80,10 @@ export const averageRating = (reviews) => {
   const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0)
   return Math.round((sum / reviews.length) * 10) / 10
 }
+
+/**
+ * Whether a product is archived (soft-deleted), either on the server
+ * (`deleted_at` set) or in the local archive (`archivedIds` Set).
+ */
+export const isGunArchived = (gun, archivedIds) =>
+  Boolean(gun?.deleted_at) || Boolean(archivedIds?.has(String(gun?.id)))

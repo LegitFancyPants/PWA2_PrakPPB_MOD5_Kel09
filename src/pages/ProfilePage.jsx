@@ -1,49 +1,77 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Shield,
   Copy,
   Check,
-  Save,
   Heart,
   FileText,
   Camera,
   Play,
+  Pencil,
+  Archive,
+  ShoppingCart,
 } from 'lucide-react'
 import userService from '../services/userService'
 import { useFavorites } from '../hooks/useFavorites'
+import { useArchive } from '../hooks/useArchive'
+import { useCart } from '../hooks/useCart'
+import { getAllDraftIds } from '../utils/draftStorage'
+import DraftsSection from '../components/profile/DraftsSection'
+import ArchiveSection from '../components/profile/ArchiveSection'
+import AboutSection from '../components/profile/AboutSection'
+import ContactSection from '../components/profile/ContactSection'
 
-/**
- * Get count of active drafts in localStorage
- */
-const getActiveDraftCount = () => {
-  try {
-    let count = 0
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && (key.startsWith('bore_barrel_draft_') || key.startsWith('recipe_draft_'))) {
-        count++
-      }
-    }
-    return count
-  } catch {
-    return 0
-  }
-}
+const SECTIONS = [
+  { id: 'profile-overview', label: 'Overview' },
+  { id: 'profile-drafts', label: 'Drafts' },
+  { id: 'profile-archive', label: 'Archive' },
+  { id: 'profile-about', label: 'About' },
+  { id: 'profile-contact', label: 'Contact' },
+]
 
 /**
  * ProfilePage — User identity and Armory settings.
- * Manages operator profile, identifier, favorites stats, and draft storage.
+ * Sections: overview (identity + stats), drafts, archive, about, contact.
+ * Name & bio are edited on the dedicated EditProfilePage.
+ *
+ * @param {Object}   props
+ * @param {Function} [props.onReplaySplash]
+ * @param {Function} props.onEditProfile     — open EditProfilePage
+ * @param {Function} props.onOpenDraft       — (draftId) => open Create / Edit form
+ * @param {string}   [props.notice]          — one-off success message
+ * @param {Function} [props.onNoticeShown]
  */
-export default function ProfilePage({ onReplaySplash }) {
-  const [profile, setProfile] = useState(() => userService.getUserProfile())
-  const [username, setUsername] = useState(profile.username || 'Shooter')
-  const [bio, setBio] = useState(profile.bio || '')
+export default function ProfilePage({
+  onReplaySplash,
+  onEditProfile,
+  onOpenDraft,
+  notice,
+  onNoticeShown,
+}) {
+  const [profile] = useState(() => userService.getUserProfile())
   const [avatar, setAvatar] = useState(profile.avatar || null)
   const [copied, setCopied] = useState(false)
-  const [feedback, setFeedback] = useState('')
+  const [feedback, setFeedback] = useState(notice || '')
 
   const { favorites } = useFavorites()
-  const [draftCount] = useState(getActiveDraftCount)
+  const { archived } = useArchive()
+  const { count: cartCount } = useCart()
+  const [draftCount, setDraftCount] = useState(() => getAllDraftIds().length)
+
+  // Show a message handed over by another page (e.g. after editing).
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => {
+      setFeedback('')
+      if (onNoticeShown) onNoticeShown()
+    }, 3000)
+    return () => clearTimeout(t)
+  }, [notice, onNoticeShown])
+
+  const flash = (msg) => {
+    setFeedback(msg)
+    setTimeout(() => setFeedback(''), 3000)
+  }
 
   const handleCopyId = () => {
     if (profile.userId) {
@@ -58,8 +86,7 @@ export default function ProfilePage({ onReplaySplash }) {
     if (!file) return
 
     if (file.size > 2 * 1024 * 1024) {
-      setFeedback('Avatar image must be under 2MB.')
-      setTimeout(() => setFeedback(''), 3000)
+      flash('Avatar image must be under 2MB.')
       return
     }
 
@@ -68,28 +95,13 @@ export default function ProfilePage({ onReplaySplash }) {
       const base64 = event.target.result
       setAvatar(base64)
       userService.updateAvatar(base64)
-      setFeedback('Avatar updated.')
-      setTimeout(() => setFeedback(''), 3000)
+      flash('Avatar updated.')
     }
     reader.readAsDataURL(file)
   }
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault()
-    const updated = {
-      ...profile,
-      username: username.trim() || 'Shooter',
-      bio: bio.trim(),
-      avatar,
-    }
-    const result = userService.saveUserProfile(updated)
-    if (result.success) {
-      setProfile(result.data)
-      setFeedback('Profile successfully updated.')
-      setTimeout(() => setFeedback(''), 3000)
-    } else {
-      setFeedback('Failed to save profile.')
-    }
+  const scrollToSection = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -98,7 +110,7 @@ export default function ProfilePage({ onReplaySplash }) {
         <div>
           <h1 className="display">Operator Profile</h1>
           <p className="lede">
-            Operator credentials, procurement statistics, and armorer details.
+            Operator credentials, drafts, archive, and shop information.
           </p>
         </div>
         {onReplaySplash && (
@@ -113,6 +125,20 @@ export default function ProfilePage({ onReplaySplash }) {
         )}
       </section>
 
+      {/* In-page section navigation */}
+      <nav className="profile-subnav" aria-label="Profile sections">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className="pill"
+            onClick={() => scrollToSection(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+
       {feedback && (
         <div className="toast toast--success">
           <Check size={18} /> {feedback}
@@ -120,7 +146,7 @@ export default function ProfilePage({ onReplaySplash }) {
       )}
 
       {/* Operator Card */}
-      <div className="profile-card">
+      <div id="profile-overview" className="profile-card profile-section-anchor">
         <div className="profile-card-top">
           <div className="avatar-wrap">
             {avatar ? (
@@ -158,6 +184,17 @@ export default function ProfilePage({ onReplaySplash }) {
           </div>
         </div>
 
+        <div className="profile-bio">
+          {profile.bio ? (
+            <p>{profile.bio}</p>
+          ) : (
+            <p className="form-hint">No bio yet.</p>
+          )}
+          <button type="button" className="btn btn--outline btn--sm" onClick={onEditProfile}>
+            <Pencil size={14} /> Edit Profile
+          </button>
+        </div>
+
         {/* Stats Grid */}
         <div className="profile-stats">
           <div className="stat-item">
@@ -170,45 +207,27 @@ export default function ProfilePage({ onReplaySplash }) {
             <div className="stat-val">{draftCount}</div>
             <div className="stat-label">Saved Offline Drafts</div>
           </div>
+          <div className="stat-item">
+            <Archive size={20} className="stat-icon" stroke="var(--steel)" />
+            <div className="stat-val">{archived.length}</div>
+            <div className="stat-label">Archived Items</div>
+          </div>
+          <div className="stat-item">
+            <ShoppingCart size={20} className="stat-icon" stroke="var(--brass)" />
+            <div className="stat-val">{cartCount}</div>
+            <div className="stat-label">Items in Cart</div>
+          </div>
         </div>
       </div>
 
-      {/* Profile Form */}
-      <form onSubmit={handleSaveProfile} className="profile-form">
-        <h3 className="section-title">Armorer Details</h3>
-
-        <div className="form-group">
-          <label htmlFor="prof-name" className="form-label">
-            Callsign / Operator Alias
-          </label>
-          <input
-            id="prof-name"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. Operator Delta, Master Gunsmith"
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="prof-bio" className="form-label">
-            Armory Notes / Station Bio
-          </label>
-          <textarea
-            id="prof-bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Qualifications, preferred calibers, unit assignment..."
-            rows={3}
-            className="form-textarea"
-          />
-        </div>
-
-        <button type="submit" className="btn btn--primary">
-          <Save size={16} /> Save Armorer Profile
-        </button>
-      </form>
+      <DraftsSection
+        id="profile-drafts"
+        onOpenDraft={onOpenDraft}
+        onChange={() => setDraftCount(getAllDraftIds().length)}
+      />
+      <ArchiveSection id="profile-archive" />
+      <AboutSection id="profile-about" />
+      <ContactSection id="profile-contact" />
     </div>
   )
 }

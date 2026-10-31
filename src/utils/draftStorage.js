@@ -114,3 +114,24 @@ export const getAllDraftIds = () => {
 export const clearAllDrafts = () => {
   getAllDraftIds().forEach(deleteDraft)
 }
+
+/**
+ * Return every saved draft with display info, newest first:
+ *   [{ id, isCreate, name, type, caliber, imageUrl, savedAt }]
+ */
+export const listDrafts = () =>
+  getAllDraftIds()
+    .map((id) => {
+      const draft = loadDraft(id) || {}
+      const form = draft.formData || {}
+      return {
+        id,
+        isCreate: id === 'create',
+        name: form.name || '',
+        type: form.type || '',
+        caliber: form.caliber || '',
+        imageUrl: draft.uploadedImageUrl || draft.imagePreview || '',
+        savedAt: getDraftTimestamp(id) || draft.savedAt || null,
+      }
+    })
+    .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))

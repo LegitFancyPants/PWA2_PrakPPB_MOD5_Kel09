@@ -1518,3 +1518,440 @@
     transform: translateY(0);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Product card footer (Add to Cart)
+ * --------------------------------------------------------------------------- */
+.card-footer {
+  padding: 0 16px 16px;
+}
+
+.cart-add-btn {
+  width: 100%;
+}
+
+.detail-actions + .detail-actions {
+  margin-top: -6px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Review management (CRUD + thumbs up / down)
+ * --------------------------------------------------------------------------- */
+.review-item--mine {
+  background: #fbf8f1;
+  border: 1px solid #ecdfc3;
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.review-item--mine:last-child {
+  padding-bottom: 10px;
+}
+
+.review-you {
+  margin-left: 8px;
+  background: var(--brass);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.review-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.review-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.review-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.review-date {
+  font-size: 0.78rem;
+  color: var(--steel);
+}
+
+.review-votes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--steel);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease;
+}
+
+.vote-btn:hover {
+  border-color: var(--steel);
+  color: var(--ink);
+}
+
+.vote-btn--active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.vote-btn--active:hover {
+  color: #fff;
+}
+
+.vote-btn--down.vote-btn--active {
+  background: #c0392b;
+  border-color: #c0392b;
+}
+
+.vote-btn--danger {
+  color: #c0392b;
+}
+
+/* ---------------------------------------------------------------------------
+ * Cart page & WhatsApp checkout
+ * --------------------------------------------------------------------------- */
+.cart-page {
+  padding-bottom: 64px;
+}
+
+.cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .cart-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cart-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.cart-item-img {
+  width: 72px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #f7f9fa;
+  border: 1px solid var(--line);
+}
+
+.cart-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cart-item-info .name {
+  font-size: 1.05rem;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-item-info .type {
+  margin-bottom: 2px;
+}
+
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 520px) {
+  .cart-item {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .cart-item-img {
+    width: 56px;
+    height: 48px;
+  }
+  .cart-item-controls {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+}
+
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.qty-stepper button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.qty-stepper button:disabled {
+  color: var(--line);
+  cursor: not-allowed;
+}
+
+.qty-stepper span {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-subtotal {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-summary {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 84px;
+}
+
+.cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.cart-total-row .price {
+  font-size: 1.4rem;
+}
+
+.wa-preview {
+  margin: 0;
+  padding: 10px 12px;
+  background: #e7f6ec;
+  border: 1px solid #bfe5cb;
+  border-radius: 4px;
+  font: 0.82rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.btn--whatsapp {
+  background: #1f8f4e;
+  color: #fff;
+  border: 1px solid #1f8f4e;
+}
+
+.btn--whatsapp:hover:not(:disabled) {
+  background: #187a41;
+  border-color: #187a41;
+}
+
+/* ---------------------------------------------------------------------------
+ * Profile sections (overview, drafts, archive, about, contact)
+ * --------------------------------------------------------------------------- */
+.profile-subnav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-bio {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-bio p {
+  margin: 0;
+  color: var(--steel);
+  max-width: 60ch;
+  white-space: pre-line;
+}
+
+.profile-section,
+.profile-section-anchor {
+  scroll-margin-top: 84px;
+}
+
+.profile-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-section-display {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.profile-section-link {
+  align-self: flex-start;
+}
+
+.mini-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.mini-item:first-child {
+  border-top: none;
+}
+
+.mini-thumb {
+  width: 56px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #f7f9fa;
+}
+
+.mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mini-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-sub {
+  font-size: 0.8rem;
+  color: var(--steel);
+}
+
+.mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 520px) {
+  .mini-item {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .mini-thumb {
+    width: 44px;
+    height: 36px;
+  }
+  .mini-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+.tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 3px;
+  background: #f5ecd9;
+  color: #7d5c1f;
+}
+
+.tag--steel {
+  background: var(--paper);
+  color: var(--steel);
+}

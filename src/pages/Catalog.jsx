@@ -2,16 +2,16 @@ import { useState, useMemo } from 'react'
 import { RefreshCw, Plus, Loader, AlertCircle, PackageOpen } from 'lucide-react'
 import { useGuns } from '../hooks/useGuns'
 import GUNS_LOCAL from '../data/guns'
+import { useArchivedIds, useArchiveActions } from '../hooks/useArchive'
 import GunCard from '../components/gun/GunCard'
-import GunDetail from '../components/gun/GunDetail'
 import AdvancedFilter from '../components/common/AdvancedFilter'
 import ConfirmModal from '../components/modals/ConfirmModal'
-import gunService from '../services/gunService'
 import {
   matchesSearch,
   matchesCategory,
   sortItems,
   extractCategories,
+  isGunArchived,
 } from '../utils/helpers'
 
 /**
@@ -21,21 +21,25 @@ import {
  *   1. Live API via useGuns()
  *   2. Local static array (GUNS_LOCAL) when the API is unreachable
  *
- * Features: search, category filter, sort, CRUD actions, detail modal.
+ * Features: search, category filter, sort, CRUD actions, archive (soft
+ * delete). Archived products are hidden. Selecting a product opens the
+ * App-level detail view (which also updates the shareable URL).
  */
 export default function Catalog({ onNavigate }) {
   // ---- API data ----
   const { guns: apiGuns, loading, error, refetch } = useGuns({ limit: 50 })
   const [useLocal, setUseLocal] = useState(false)
+  const archivedIds = useArchivedIds()
 
-  // Decide data source
+  // Decide data source, then hide archived (soft-deleted) products
   const rawGuns = useMemo(() => {
-    if (useLocal || (error && apiGuns.length === 0)) {
-      // Enrich local data with synthetic ids so FavoriteButton and detail work
-      return GUNS_LOCAL.map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
-    }
-    return apiGuns
-  }, [apiGuns, error, useLocal])
+    const source =
+      useLocal || (error && apiGuns.length === 0)
+        ? // Enrich local data with synthetic ids so FavoriteButton and detail work
+          GUNS_LOCAL.map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
+        : apiGuns
+    return source.filter((g) => !isGunArchived(g, archivedIds))
+  }, [apiGuns, error, useLocal, archivedIds])
 
   // ---- filters / sort ----
   const [search, setSearch] = useState('')
@@ -52,39 +56,20 @@ export default function Catalog({ onNavigate }) {
     return sortItems(result, sortKey, sortOrder)
   }, [rawGuns, search, activeCategory, sortKey, sortOrder])
 
-  // ---- detail view ----
-  const [selectedGun, setSelectedGun] = useState(null)
-
-  // ---- delete ----
+  // ---- archive (soft delete) ----
+  const { archiveGun, archiving } = useArchiveActions()
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     try {
-      setDeleting(true)
       setDeleteError('')
-      await gunService.deleteGun(deleteTarget.id)
+      await archiveGun(deleteTarget)
       setDeleteTarget(null)
-      refetch()
     } catch (err) {
-      setDeleteError(err.message || 'Failed to delete.')
-    } finally {
-      setDeleting(false)
+      setDeleteError(err.message || 'Failed to archive.')
     }
-  }
-
-  // ---- If viewing a single product detail ----
-  if (selectedGun) {
-    return (
-      <GunDetail
-        gun={selectedGun}
-        onBack={() => setSelectedGun(null)}
-        onEdit={(g) => onNavigate && onNavigate('Edit', g)}
-        onDelete={(g) => { setSelectedGun(null); setDeleteTarget(g) }}
-      />
-    )
   }
 
   // ---- Main catalog view ----
@@ -170,7 +155,7 @@ export default function Catalog({ onNavigate }) {
               <GunCard
                 key={gun.id || gun.name}
                 gun={gun}
-                onSelect={setSelectedGun}
+                onSelect={(g) => onNavigate && onNavigate('Detail', g)}
                 onEdit={onNavigate ? (g) => onNavigate('Edit', g) : undefined}
                 onDelete={setDeleteTarget}
               />
@@ -195,11 +180,10 @@ export default function Catalog({ onNavigate }) {
       {/* Delete confirmation */}
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete Product"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        danger
-        loading={deleting}
+        title="Archive Product"
+        message={`Move "${deleteTarget?.name}" to the archive? It will be hidden from the catalog and can be restored from Profile › Archive.`}
+        confirmLabel="Archive"
+        loading={archiving}
         onConfirm={handleDelete}
         onCancel={() => { setDeleteTarget(null); setDeleteError('') }}
       />

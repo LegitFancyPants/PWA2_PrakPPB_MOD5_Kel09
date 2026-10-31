@@ -1,4 +1,6 @@
 import FavoriteButton from '../common/FavoriteButton'
+import ShareButton from '../common/ShareButton'
+import AddToCartButton from '../common/AddToCartButton'
 import { formatPrice, truncate } from '../../utils/helpers'
 
 /**
@@ -8,7 +10,7 @@ import { formatPrice, truncate } from '../../utils/helpers'
  * @param {Object}   props.gun       — product data
  * @param {Function} props.onSelect  — called with the gun when clicked
  * @param {Function} [props.onEdit]  — called when Edit is clicked (admin)
- * @param {Function} [props.onDelete]— called when Delete is clicked (admin)
+ * @param {Function} [props.onDelete]— called when Archive is clicked (admin, soft delete)
  */
 export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
@@ -31,6 +33,7 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
           width="240"
           height="180"
           loading="lazy"
+          decoding="async"
         />
 
         <span className="name display">{gun.name}</span>
@@ -50,6 +53,7 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
       {/* Floating actions row */}
       <div className="card-actions">
         <FavoriteButton gunId={gun.id || gun.name} />
+        {gun.id != null && <ShareButton gun={gun} compact />}
 
         {onEdit && (
           <button
@@ -68,12 +72,16 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
             type="button"
             className="card-act-btn card-act-btn--danger"
             onClick={(e) => { e.stopPropagation(); onDelete(gun) }}
-            aria-label={`Delete ${gun.name}`}
-            title="Delete"
+            aria-label={`Archive ${gun.name}`}
+            title="Move to archive"
           >
-            🗑️
+            🗄️
           </button>
         )}
+      </div>
+
+      <div className="card-footer">
+        <AddToCartButton gun={gun} compact />
       </div>
     </li>
   )

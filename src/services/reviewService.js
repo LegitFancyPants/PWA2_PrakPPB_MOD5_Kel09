@@ -18,6 +18,7 @@ class ReviewService {
         ? data.map((r) => ({
             id: r.id,
             product_id: r.product_id,
+            user_id: r.user_id,
             user_identifier: r.user_id ? `Operator ${String(r.user_id).substring(0, 8)}` : 'Anonymous',
             rating: r.rating,
             comment: r.comment || '',
@@ -56,18 +57,23 @@ class ReviewService {
   }
 
   /**
-   * Edit an existing review.
+   * Edit an existing review. Only the author's own review is matched.
+   * @param {Object} reviewData  { user_identifier, rating, comment }
    */
   async updateReview(reviewId, reviewData) {
     if (IS_SUPABASE) {
       const res = await apiClient.patch(
-        `/rest/v1/reviews?id=eq.${reviewId}`,
+        `/rest/v1/reviews?id=eq.${reviewId}&user_id=eq.${reviewData.user_identifier}`,
         {
           rating: Number(reviewData.rating),
           comment: reviewData.comment,
         },
         { headers: { Prefer: 'return=representation' } },
       )
+      // An empty result means the row was not found or RLS blocked the update.
+      if (Array.isArray(res) && res.length === 0) {
+        return { success: false, message: 'Review could not be updated.' }
+      }
       return { success: true, data: Array.isArray(res) ? res[0] : res }
     }
 
@@ -75,15 +81,25 @@ class ReviewService {
   }
 
   /**
-   * Delete a review.
+   * Delete a review. Only the author's own review is matched.
    */
-  async deleteReview(reviewId) {
+  async deleteReview(reviewId, userIdentifier) {
     if (IS_SUPABASE) {
-      await apiClient.delete(`/rest/v1/reviews?id=eq.${reviewId}`)
+      const res = await apiClient.delete(
+        `/rest/v1/reviews?id=eq.${reviewId}&user_id=eq.${userIdentifier}`,
+        {
+          headers: { Prefer: 'return=representation' },
+        },
+      )
+      if (Array.isArray(res) && res.length === 0) {
+        return { success: false, message: 'Review could not be deleted.' }
+      }
       return { success: true }
     }
 
-    return apiClient.delete(`/api/v1/reviews/${reviewId}`)
+    return apiClient.delete(`/api/v1/reviews/${reviewId}`, {
+      params: { user_identifier: userIdentifier },
+    })
   }
 }
 
